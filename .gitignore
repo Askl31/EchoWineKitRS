@@ -1,0 +1,10 @@
+# Artefacts de compilation Rust
+/target/
+
+# MacOS
+.DS_Store
+
+# Éditeurs
+*.swp
+.idea/
+.vscode/

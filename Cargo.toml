@@ -1,0 +1,19 @@
+[package]
+name = "echowinekit"
+version = "1.0.0"
+edition = "2021"
+description = "Couche d'exécution EchoPAC dédiée (Wine + D3DMetal) pour macOS Apple Silicon"
+license = "MIT"
+
+[[bin]]
+name = "echowinekit"
+path = "src/main.rs"
+
+# Binaire unique, statique, sans dépendance : compilation LTO complète,
+# symboles retirés, paniques en abort (taille et vitesse maximales).
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

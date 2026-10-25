@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EchoWineKit — EchoPAC sur Mac</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --ink: #1d2127; --mut: #6b7280;
+    --line: #e3e6ea; --acc: #0a66ff; --acc-ink: #ffffff;
+    --ok: #1a9c4a; --ok-bg: #e7f7ee; --bad: #d33; --bad-bg: #fdeeee;
+    --warn-bg: #fff7e0; --console-bg: #101418; --console-ink: #c9d4df;
+    --shadow: 0 1px 2px rgba(20,24,31,.06), 0 8px 24px rgba(20,24,31,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171b; --card: #1d2127; --ink: #e8ecf1; --mut: #9aa3af;
+      --line: #2b313a; --acc: #3d8bff; --acc-ink: #0c1016;
+      --ok: #46c97c; --ok-bg: #17301f; --bad: #ff6b6b; --bad-bg: #331a1c;
+      --warn-bg: #332b14; --console-bg: #0b0e11; --console-ink: #b7c3cf;
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "system-ui", "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 28px 20px 80px; }
+  header h1 { font-size: 22px; margin: 0; letter-spacing: -.2px; }
+  header p { margin: 4px 0 0; color: var(--mut); font-size: 14px; }
+  .chips { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px;
+    border-radius: 999px; border: 1px solid var(--line); background: var(--card);
+    font-size: 13px; color: var(--mut);
+  }
+  .chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--mut); }
+  .chip.on { color: var(--ink); }
+  .chip.on .dot { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-bg); }
+  .banner {
+    display: none; margin-top: 16px; padding: 10px 14px; border-radius: 10px;
+    font-size: 14px;
+  }
+  .banner.err { display: block; background: var(--bad-bg); color: var(--bad); }
+  .banner.info { display: block; background: var(--warn-bg); color: var(--ink); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px 16px 14px; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .card .num {
+    width: 26px; height: 26px; border-radius: 8px; background: var(--acc);
+    color: var(--acc-ink); font-weight: 700; font-size: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .card h2 { font-size: 16px; margin: 0; display: flex; gap: 10px; align-items: center; }
+  .card p { margin: 0; color: var(--mut); font-size: 13.5px; flex: 1; }
+  .row { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+  button {
+    appearance: none; border: 1px solid var(--acc); background: var(--acc);
+    color: var(--acc-ink); font: inherit; font-weight: 600;
+    padding: 8px 16px; border-radius: 10px; cursor: pointer;
+  }
+  button:hover { filter: brightness(1.08); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.ghost { background: transparent; color: var(--acc); }
+  button.big { padding: 12px 22px; font-size: 16px; width: 100%; }
+  button.green { background: var(--ok); border-color: var(--ok); }
+  input[type=text] {
+    flex: 1; min-width: 220px; font: inherit; padding: 8px 12px;
+    border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink);
+  }
+  .chips-media { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips-media button { padding: 5px 12px; font-size: 13px; font-weight: 500; }
+  .console {
+    margin-top: 18px; background: var(--console-bg); color: var(--console-ink);
+    border-radius: 14px; padding: 12px 14px; font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .console .head {
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--mut); font-family: inherit; margin-bottom: 6px; font-size: 12px;
+  }
+  .console .head button {
+    padding: 3px 10px; font-size: 12px; border-radius: 7px; background: transparent;
+    color: var(--console-ink); border-color: #3a424d;
+  }
+  #log {
+    white-space: pre-wrap; word-break: break-word; overflow-y: auto;
+    height: 260px; scrollbar-width: thin;
+  }
+  footer { margin-top: 26px; color: var(--mut); font-size: 12.5px; }
+  footer .note {
+    margin-top: 10px; padding: 10px 14px; border-radius: 10px;
+    background: var(--warn-bg); color: var(--ink);
+  }
+  .finder { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .finder button { background: transparent; color: var(--acc); border-color: var(--line); }
+  .danger { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px;
+    padding: 12px 14px; border: 1px dashed var(--bad); border-radius: 12px; }
+  .danger span { flex: 1; min-width: 220px; color: var(--mut); font-size: 13px; }
+  .danger button { background: transparent; color: var(--bad); border-color: var(--bad); font-weight: 600; }
+  .danger button:hover { background: var(--bad-bg); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>EchoWineKit</h1>
+    <p>Installation et lancement d'EchoPAC sur Mac Apple Silicon — couche Wine + D3DMetal, sans machine virtuelle.</p>
+    <div class="chips">
+      <span class="chip" id="c-kit"><span class="dot"></span>Composants (Wine)</span>
+      <span class="chip" id="c-prefix"><span class="dot"></span>Préfixe Windows</span>
+      <span class="chip" id="c-echopac"><span class="dot"></span>EchoPAC installé</span>
+    </div>
+    <div class="banner err" id="banner"></div>
+    <div class="banner info" id="busy">Une tâche est en cours — les détails s'affichent dans la console en bas. Les demandes de mot de passe s'affichent dans le Terminal qui a lancé l'interface.</div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2><span class="num">1</span>Installer les composants</h2>
+      <p>Rosetta 2, Homebrew, Wine « wine-crossover » (avec D3DMetal pour DirectX 11 → Metal) et winetricks. Une seule fois, ~10 min.</p>
+      <div class="row"><button data-step="install-kit">Installer les composants</button></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">2</span>Créer le préfixe Windows</h2>
+      <p>Préfixe Wine isolé : Windows 10 64 bits, VC++ 2008, compilateur D3D, rendu via Metal.</p>
+      <div class="row"><button data-step="create-prefix">Créer le préfixe</button></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">3</span>Installer ou mettre à jour EchoPAC</h2>
+      <p>Indiquez le dossier du média d'installation (toute version d'EchoPAC convient — une mise à jour s'installe par-dessus l'existante). L'installeur GE s'ouvre dans sa propre fenêtre.</p>
+      <div class="row">
+        <input type="text" id="media" placeholder="ex. ~/Downloads/EchoPac 212.1.2.3">
+        <button data-step="install-echopac" id="btn-install">Installer</button>
+      </div>
+      <div class="chips-media" id="media-chips"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="num">4</span>Lancer EchoPAC</h2>
+      <p>EchoPAC s'ouvre en plein écran dans sa propre fenêtre. Vous pouvez aussi créer une icône EchoPAC dans /Applications.</p>
+      <div class="row">
+        <button class="big green" data-step="launch">Lancer EchoPAC</button>
+      </div>
+      <div class="row">
+        <button class="ghost" data-step="app-bundle">Créer EchoPAC.app</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:14px">
+    <button class="ghost" data-step="doctor">Diagnostic complet</button>
+    <span style="flex:1"></span>
+    <button class="ghost" onclick="openDir('root')">Dossier du kit</button>
+    <button class="ghost" onclick="openDir('prefix')">Préfixe Windows</button>
+    <button class="ghost" onclick="openDir('logs')">Journaux</button>
+  </div>
+
+  <div class="danger">
+    <span><b>Désinstallation.</b> « Désinstaller EchoPAC » supprime le programme, la copie du
+    média et les entrées de registre — le préfixe est conservé pour une réinstallation.
+    « Tout réinitialiser » supprime en plus le préfixe et les réglages.
+    <b>Dans les deux cas, les données d'examen stockées dans le préfixe sont supprimées :</b>
+    sauvegardez-les d'abord (bouton « Préfixe Windows »).</span>
+    <button data-step="uninstall-echopac" class="confirm-step"
+      data-confirm="Désinstaller EchoPAC ? Les données d'examen présentes dans le préfixe seront également supprimées. Continuer ?">Désinstaller EchoPAC…</button>
+    <button data-step="reset-kit" class="confirm-step"
+      data-confirm="Réinitialiser TOUT le kit (préfixe + réglages) ? Cette action est irréversible. Continuer ?">Tout réinitialiser…</button>
+  </div>
+
+  <div class="console">
+    <div class="head">
+      <span id="console-title">Console</span>
+      <button onclick="clearLog()">Effacer</button>
+    </div>
+    <div id="log"></div>
+  </div>
+
+  <footer>
+    <div>EchoWineKit 1.0 — usage recherche / enseignement / relecture. GE ne supporte officiellement ni macOS, ni les machines virtuelles.</div>
+    <div class="note">
+      <b>Licence :</b> ce kit n'installe aucun composant Sentinel/HASP et ne contourne aucune
+      protection. Si votre version d'EchoPAC exige la clé USB de licence, aucun fichier ne peut
+      légalement la remplacer — utilisez la Solution 1 (VM + clé USB redirigée, dossier
+      « Mac-Silicon ») ou contactez GE Healthcare pour une licence adaptée.
+    </div>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const logEl = $("#log");
+let lines = [];
+let autoscroll = true;
+
+function renderLog() {
+  const atBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 40;
+  logEl.textContent = lines.length ? lines.join("\n") : "— rien pour l'instant —";
+  if (autoscroll && atBottom) logEl.scrollTop = logEl.scrollHeight;
+}
+function clearLog() { lines = []; renderLog(); }
+
+function setBusy(running) {
+  document.querySelectorAll("button[data-step]").forEach((b) => (b.disabled = !!running));
+  $("#busy").className = running ? "banner info" : "banner";
+}
+
+async function post(path, params) {
+  const body = params ? new URLSearchParams(params).toString() : "";
+  const r = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const b = $("#banner");
+    b.textContent = j.error || ("erreur " + r.status);
+    b.className = "banner err";
+  }
+  return j;
+}
+
+function start(step) {
+  const media = $("#media").value.trim();
+  if (step === "install-echopac" && !media) {
+    const b = $("#banner");
+    b.textContent = "Indiquez d'abord le dossier du média d'installation (il doit contenir setup.exe).";
+    b.className = "banner err";
+    return;
+  }
+  $("#banner").className = "banner";
+  post("/api/start", { step, media }).then((j) => { if (j.started) setBusy(true); });
+}
+
+document.querySelectorAll("button[data-step]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const msg = btn.dataset.confirm;
+    if (msg && !window.confirm(msg)) return;
+    start(btn.dataset.step);
+  });
+});
+
+async function openDir(target) { await post("/api/open", { target }); }
+
+// ----- sondage de l'état de la tâche en cours -----
+async function poll() {
+  try {
+    const s = await (await fetch("/api/status")).json();
+    const changed = s.lines.length !== lines.length;
+    if (changed) { lines = s.lines; renderLog(); }
+    setBusy(!!s.running);
+    if (!s.running && s.ok === false) {
+      const b = $("#banner");
+      b.textContent = "La dernière tâche a échoué — détails dans la console ci-dessous (et bouton « Diagnostic complet »).";
+      b.className = "banner err";
+    }
+  } catch (_) { /* interface arrêtée */ }
+}
+setInterval(poll, 800);
+poll();
+
+// ----- rafraîchissement des indicateurs -----
+async function refreshState() {
+  try {
+    const st = await (await fetch("/api/state")).json();
+    for (const [id, val] of [["c-kit", st.kit], ["c-prefix", st.prefix], ["c-echopac", st.echopac]]) {
+      $("#" + id).classList.toggle("on", !!val);
+    }
+  } catch (_) {}
+}
+setInterval(refreshState, 5000);
+refreshState();
+
+// ----- détection des médias disponibles -----
+async function probeMedia() {
+  try {
+    const p = await (await fetch("/api/probe")).json();
+    const box = $("#media-chips");
+    box.innerHTML = "";
+    if (!p.candidates.length) return;
+    const tag = document.createElement("span");
+    tag.textContent = "Médias détectés :";
+    tag.style.cssText = "color:var(--mut);font-size:13px;align-self:center";
+    box.appendChild(tag);
+    for (const c of p.candidates) {
+      const b = document.createElement("button");
+      b.className = "ghost";
+      b.textContent = c.split("/").pop() || c;
+      b.title = c;
+      b.onclick = () => { $("#media").value = c; };
+      box.appendChild(b);
+    }
+  } catch (_) {}
+}
+probeMedia();
+</script>
+</body>
+</html>
